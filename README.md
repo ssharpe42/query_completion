@@ -4,7 +4,7 @@ This repo contains code for building an LSTM LM for personalized query auto-comp
 
 Train a model using
 `
-./trainer.py /path/to/expdir --data /path/to/data.tsv --valdata /path/to/valdata.tsv
+python code/trainer.py 
 `
 Set hyperparameters following the format in `default_params.json`.
 
@@ -15,3 +15,6 @@ Description of code files:
 * trainer.py - script for training a new langauge model
 * dynamic.py - script for evaluating trained model on new users
 
+New files for ReferIt:
+* build_referit_data.py - preprocess referit queries to feed to LSTM
+* build_coco_data.py - preprocess mscoco queries to feed to LSTM

@@ -1,52 +1,65 @@
 import argparse
 import logging
 import os
-import pandas
+import pandas as pd
 import numpy as np
 import tensorflow as tf
 
+
+
+import sys
+sys.path.insert(0,'code')
+pd.options.display.max_columns = 100
+
 import helper
-from dataset import Dataset, LoadData
+from dataset import Dataset, LoadData,LoadReferItData
 from model import Model
 from metrics import MovingAvg
 from vocab import Vocab
 
+# parser = argparse.ArgumentParser()
+# parser.add_argument('expdir', help='experiment directory')
+# parser.add_argument('--data', type=str, action='append', dest='data',
+#                     help='where to load the data')
+# parser.add_argument('--valdata', type=str, action='append', dest='valdata',
+#                     help='where to load validation data', default=[])
+# parser.add_argument('--threads', type=int, default=12,
+#                     help='how many threads to use in tensorflow')
+# args = parser.parse_args()
+#
+# expdir = args.expdir
 
-parser = argparse.ArgumentParser()
-parser.add_argument('expdir', help='experiment directory')
-parser.add_argument('--data', type=str, action='append', dest='data',
-                    help='where to load the data')
-parser.add_argument('--valdata', type=str, action='append', dest='valdata',
-                    help='where to load validation data', default=[])
-parser.add_argument('--threads', type=int, default=12,
-                    help='how many threads to use in tensorflow')
-args = parser.parse_args()
+threads = 2
+params = 'code/default_params.json'
+train_data = 'data/referit/train_queries.txt'
+val_data = 'data/referit/val_queries.txt'
+train_data = 'data/coco/train_queries.txt'
+val_data = 'data/coco/val_queries.txt'
 
-expdir = args.expdir
+expdir = 'referit_experiment'
 
-
-params = helper.GetParams(None, 'eval', args.expdir)
+params = helper.GetParams(None, 'eval', expdir)
 
 logging.basicConfig(filename=os.path.join(expdir, 'logfile.more.txt'),
                     level=logging.INFO)
 logging.getLogger().addHandler(logging.StreamHandler())
 
-df = LoadData(args.data)
-char_vocab = Vocab.Load(os.path.join(args.expdir, 'char_vocab.pickle'))
+df = LoadReferItData(train_data)
+char_vocab = Vocab.Load(os.path.join(expdir, 'char_vocab.pickle'))
 params.vocab_size = len(char_vocab)
-user_vocab = Vocab.Load(os.path.join(args.expdir, 'user_vocab.pickle'))
+user_vocab = Vocab.Load(os.path.join(expdir, 'user_vocab.pickle'))
 params.user_vocab_size = len(user_vocab)
 dataset = Dataset(df, char_vocab, user_vocab, max_len=params.max_len)
 
-val_df = LoadData(args.valdata)
+val_df = LoadReferItData(val_data)
 valdata = Dataset(val_df, char_vocab, user_vocab, max_len=params.max_len,
                   batch_size=params.batch_size)
 
 model = Model(params, optimizer=tf.train.GradientDescentOptimizer,
               learning_rate=0.05)
 saver = tf.train.Saver(tf.global_variables())
-config = tf.ConfigProto(inter_op_parallelism_threads=args.threads,
-                        intra_op_parallelism_threads=args.threads)
+config = tf.ConfigProto(inter_op_parallelism_threads=threads,
+                        intra_op_parallelism_threads=threads)
 session = tf.Session(config=config)
 session.run(tf.global_variables_initializer())
 saver.restore(session, os.path.join(expdir, 'model.bin'))
